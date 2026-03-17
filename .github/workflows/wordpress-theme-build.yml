@@ -10,6 +10,10 @@ on:
       node-versions:
         type: string
         default: '["22", "24"]'
+      build-command:
+        type: string
+        # Vite and Webpack have different build commands
+        default: 'npm run prod'
 
 jobs:
   build:
@@ -54,4 +58,5 @@ jobs:
         run: npm ci
 
       - name: Build assets
-        run: npm run prod
+        # Use the dynamic input
+        run: ${{ inputs.build-command }}
