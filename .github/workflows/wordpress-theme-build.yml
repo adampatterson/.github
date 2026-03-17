@@ -1,0 +1,57 @@
+name: Reusable Theme Build
+
+on:
+  workflow_call:
+    # This allows you to pass different versions if a specific project needs them
+    inputs:
+      php-versions:
+        type: string
+        default: '["8.2", "8.4"]'
+      node-versions:
+        type: string
+        default: '["22", "24"]'
+
+jobs:
+  build:
+    name: Build (PHP ${{ matrix.php-versions }} / Node ${{ matrix.node-versions }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # We parse the string input back into a JSON array for the matrix
+        php-versions: ${{ fromJson(inputs.php-versions) }}
+        node-versions: ${{ fromJson(inputs.node-versions) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-versions }}
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run prod
